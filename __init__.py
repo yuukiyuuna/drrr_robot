@@ -40,9 +40,9 @@ def get_content():
                     messages_save.append(b)
                 # print('以获取全局变量messages_save:' + str(messages_save))
                 lock.release()
-            elif messages.find('[{') != -1:
+            elif messages.find(':[{') != -1:
                 # 在写入变量的时候锁住该变量，防止第二子进程写入
-                a = messages.split('[{')
+                a = messages.split(':[{')
                 lock.acquire()
                 for b in a:
                     messages_save.append(b)
@@ -102,17 +102,18 @@ def process_content():
                         content = re.search(r'(?<="message":").*?(?=")', message).group()
                         # 如果关键字匹配为命令，则调用order来进行处理
                         #如果匹配到相关命令的语句的时候
-                        if re.search(myname, content) or re.search(r'\\\\', content):
+                        if re.search(myname, content) or re.search(r'\\', content):
                             #以第一个空格进行切分
                             order = content.split(' ', maxsplit=1)
+                            # print('已配到类似命令的语句：' + str(order))
                             if order[0] == myname:
                                 print('匹配资料库进行对话')
-                            elif content[0] == '\\\\点歌':
-                                print('已点歌曲：' + content[1])
+                            elif order[0] == '\\点歌':
+                                # print('已点歌曲：' + order[1])
                                 lock.acquire()
-                                music_name.append(content[1])
+                                music_name.append(order[1])
                                 lock.release()
-                            elif content[0] == '\\\\version':
+                            elif order[0] == '\\version':
                                 reply = open('version', 'r').read()
                                 print('当前版本：' + str(reply))
                     elif type == 'join':
@@ -189,7 +190,7 @@ send_messages = []
 
 #注册账号并进入房间
 username = '青空云之彼方'
-homename = '揺れる'
+homename = '苍天之上'
 description = '边听歌边聊天吧，niconiconi'
 limit = '5'
 musicname = int('1')
