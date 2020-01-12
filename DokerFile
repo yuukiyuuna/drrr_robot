@@ -12,6 +12,9 @@ RUN apk add --no-cache chromium chromium-chromedriver
 #RUN apk add --no-cache openssh
 #RUN sed -i "s/#PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config
 
+#清理缓存
+RUN rm -rf /var/cache/apk/*
+
 #安装selenium
 RUN pip install selenium
 
