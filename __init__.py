@@ -7,7 +7,10 @@ from selenium import webdriver
 def get_content():
     global messages_save
     global driver_drr
-    last_time = str(int(time.time()) - 15)
+    #因为运行后会获取到自己进入房间的消息，然后造成死循环
+    #创建房间后停止运行5秒，不让其获取到自己进入房间的消息
+    time.sleep(5)
+    last_time = str(int(time.time()))
     while 1:
         # 因为子线程会切换浏览器句柄，该try一定会在切换句柄的时候报错，所以此处暂不记录报错日志
         try:
@@ -70,7 +73,9 @@ def process_content():
     # 在这里组合如果被@的名字组合：
     global messages_save
     global music_name
+    global username
     myname = '@' + username
+    sendmessage = ''
     message_list = []
     while 1:
         # 判断是否有未处理的消息，如果没有跳过循环
@@ -98,7 +103,6 @@ def process_content():
         #处理获取到的数组
         try:
             for message in message_list:
-                lastmessage = ''  # 预声明最后需要发表的文本
                 if re.search(r'"type"', message):
                     type = re.search(r'(?<="type":").*?(?=")', message).group()
                     name = re.search(r'(?<="name":").*?(?=")', message).group()
@@ -114,18 +118,25 @@ def process_content():
                             order = content.split(' ', maxsplit=1)
                             # print('已配到类似命令的语句：' + str(order))
                             if order[0] == myname:
-                                print('匹配资料库进行对话')
+                                lock.acquire()
+                                send_messages.append([0, '可以点歌哟，格式“\点歌 歌曲名 歌手名”，不加歌手名也可以。因为我还不聪明，可能会有些慢，请不要着急哟'])
+                                lock.release()
                             elif order[0] == '\\点歌':
                                 # print('已点歌曲：' + order[1])
                                 lock.acquire()
                                 music_name.append(order[1])
                                 lock.release()
                             elif order[0] == '\\version':
-                                reply = open('version', 'r').read()
-                                print('当前版本：' + str(reply))
+                                reply = open('version', 'r', encoding='gb18030', errors='ignore').readline()
+                                lock.acquire()
+                                send_messages.append([0, reply.format('utf-8')])
+                                lock.release()
                     elif type == 'join':
-                        sendmessage = '@' + name + ' 欢迎光临'
-                        # print(sendmessage)
+                        mes = '@' + name + ' 欢迎光临'
+                        lock.acquire()
+                        send_messages.append([0, mes])
+                        lock.release()
+
         except Exception as e:
             error_log('e', '处理消息的过程中失败：\n' + str(message_list))
             continue
@@ -145,7 +156,7 @@ def music():
             if len(music_list) == 0:
                 # print('未获取需要查找的歌曲名，第三子线程已跳过')
                 # print('----------------------------------------')
-                time.sleep(5)
+                time.sleep(0.2)
                 continue
             else:
                 driver_music = webdriver.Chrome(executable_path="C:\Windows\System32\chromedriver.exe")
@@ -188,16 +199,32 @@ def process_send():
             if len(send_contant) == 0:
                 # print('未获取需要发送的消息内容，第四子线程已跳过')
                 # print('----------------------------------------')
-                time.sleep(5)
+                time.sleep(0.2)
                 continue
             else:
                 # print('已获取到需要发送的消息内容：' + str(send_contant))
                 for message in send_contant:
                     # messages[0]为需要发送文本消息
                     if message[0] == 0:
-                        # print('发送系统消息')
-                        # print('----------------------------------------')
-                        pass
+                        lock.acquire()
+                        now_handle = driver_drr.current_window_handle
+                        # 新建一个窗口，用于发送歌曲信息
+                        sendjs = 'window.open("https://drrr.com/room/?id=' + homeid + '");'
+                        driver_drr.execute_script(sendjs)
+                        # 获取当前所有窗口句柄，用于判断并切换新窗口
+                        handles = driver_drr.window_handles
+                        for handle in handles:
+                            if handle != now_handle:
+                                # 切换到新打开的窗口B
+                                driver_drr.switch_to.window(handle)
+                                # 执行命令
+                                driver_drr.find_element_by_xpath('//*[@id="message"]/div[2]/textarea').send_keys(message[1])
+                                driver_drr.find_element_by_xpath('//*[@id="message"]/div[3]/input').click()
+                                time.sleep(1)
+                                # 命令执行成功后关闭新建的窗口，并切换回原本的窗口
+                                driver_drr.close()
+                                driver_drr.switch_to.window(handles[0])
+                        lock.release()
                     # messages[1]为需要点歌
                     elif message[0] == 1:
                         lock.acquire()
@@ -215,8 +242,8 @@ def process_send():
                                 driver_drr.find_element_by_id('musicShare').click()
                                 driver_drr.find_element_by_id('form-room-music-name').send_keys(message[1])
                                 driver_drr.find_element_by_id('form-room-music-url').send_keys(message[2])
-                                time.sleep(0.1)
                                 driver_drr.find_element_by_class_name('btn-sm').click()
+                                time.sleep(1)
                                 # 命令执行成功后关闭新建的窗口，并切换回原本的窗口
                                 driver_drr.close()
                                 driver_drr.switch_to.window(handles[0])
@@ -285,9 +312,9 @@ send_messages = []
 
 
 #注册账号并进入房间
-username = '青空云之彼方'
-homename = '苍天之上'
-description = '边听歌边聊天吧，niconiconi'
+username = '愉悦听歌聊天房'
+homename = '点歌姬'
+description = '边听歌边聊天吧，妮可妮可妮'
 limit = '5'
 musicname = int('1')
 
