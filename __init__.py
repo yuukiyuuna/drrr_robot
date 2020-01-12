@@ -142,7 +142,7 @@ def process_content():
             continue
 
 #第三子线程，用于查找歌曲名称并直接向房间内分享音乐
-def music():
+def music(chrome_path):
     global music_name
     global send_messages
     music_list = []
@@ -159,7 +159,14 @@ def music():
                 time.sleep(0.2)
                 continue
             else:
-                driver_music = webdriver.Chrome(executable_path="C:\Windows\System32\chromedriver.exe")
+                option2 = webdriver.ChromeOptions()
+                option2.add_argument('--headless')  # 设置option
+                option2.add_argument('--disable-gpu')  # 谷歌文档提到需要加上这个属性来规避bug
+                option2.add_argument('--hide-scrollbars')  # 隐藏滚动条, 应对一些特殊页面
+                option2.add_argument('blink-settings=imagesEnabled=false')  # 不加载图片, 提升速度
+                driver_music = webdriver.Chrome(executable_path=chrome_path, chrome_options=option2)
+                # driver_music = webdriver.Chrome(chrome_options=option2)   #在docker环境的时候将上面注释，取消该句的注释
+
                 for name in music_list:
                     try:
                         # 循环前先把musciid重置，避免未找到歌曲的时候继续使用上一个id
@@ -303,8 +310,16 @@ global homeid
 global username
 global lock                 #线程锁
 global driver_drr           #定义全局变量，使所有操作可以在一个浏览器窗口内进行
+global chrome_path
+chrome_path = 'C:\Windows\System32\chromedriver.exe'
 lock = threading.RLock()
-driver_drr = webdriver.Chrome(executable_path ="C:\Windows\System32\chromedriver.exe")
+option1 = webdriver.ChromeOptions()
+option1.add_argument('--headless') # 设置option
+option1.add_argument('--disable-gpu')#谷歌文档提到需要加上这个属性来规避bug
+option1.add_argument('--hide-scrollbars') #隐藏滚动条, 应对一些特殊页面
+option1.add_argument('blink-settings=imagesEnabled=false')#不加载图片, 提升速度
+driver_drr = webdriver.Chrome(executable_path=chrome_path, chrome_options=option1)
+# driver_drr = webdriver.Chrome(chrome_options=option1)   #在docker环境的时候将上面注释，取消该句的注释
 driver_drr.implicitly_wait(10)
 messages_save = []
 music_name = []
@@ -337,7 +352,7 @@ except Exception as e:
 #t1为获取新消息
 t1 = threading.Thread(target=get_content)
 t2 = threading.Thread(target=process_content)
-t3 = threading.Thread(target=music)
+t3 = threading.Thread(target=music, args=chrome_path)
 t4 = threading.Thread(target=process_send)
 
 t1.start()
