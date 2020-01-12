@@ -26,15 +26,15 @@ def get_content():
                 update_time = re.findall(r'(?<="update":).*?(?=,)', messages)
             else:
                 time.sleep(3)
-                print('没有获取到新的时间，第一子线程已跳过')
-                print('----------------------------------------')
+                # print('没有获取到新的时间，第一子线程已跳过')
+                # print('----------------------------------------')
                 continue
 
             # 将请求的时间加上0.01秒，避免再次处理上次已处理的请求
             last_time = update_time[len(update_time) - 1]
             last_time = last_time.replace('}', '')          #在测试时有的时间会有{，需要去掉
             last_time = str(float(last_time) + 0.01)
-            print('请求时间为：' + last_time)
+            # print('请求时间为：' + last_time)
 
             # 处理文本内容,将文本扔给支线程处理
             if messages.find('},{') != -1:
@@ -43,7 +43,7 @@ def get_content():
                 lock.acquire()
                 for b in a:
                     messages_save.append(b)
-                print('以获取全局变量messages_save:' + str(messages_save))
+                # print('以获取全局变量messages_save:' + str(messages_save))
                 lock.release()
             elif messages.find(':[{') != -1:
                 # 在写入变量的时候锁住该变量，防止第二子进程写入
@@ -51,7 +51,7 @@ def get_content():
                 lock.acquire()
                 for b in a:
                     messages_save.append(b)
-                print('以获取全局变量messages_save:' + str(messages_save))
+                # print('以获取全局变量messages_save:' + str(messages_save))
                 lock.release()
             else:
                 # print('未获取全局变量messages_save，第一子线程已跳过')
@@ -62,7 +62,7 @@ def get_content():
             error_log(e, '已获取问题语句：' + messages)
             time.sleep(3)
             continue
-        print('----------------------------------------')
+        # print('----------------------------------------')
         time.sleep(3)
 
 #第二子线程，用于识别消息里的命令语句，然后进行处理
@@ -82,7 +82,7 @@ def process_content():
             if len(message_list) != 0:
                 # 在读取messages_save函数内容期间，使用进程所将该函数锁住
                 # 若message_save有内容，获取该内容并重置该变量
-                print('message_list变量已被获取:' + str(message_list))
+                # print('message_list变量已被获取:' + str(message_list))
                 pass
 
                 # print('----------------------------------------')
@@ -125,7 +125,7 @@ def process_content():
                                 print('当前版本：' + str(reply))
                     elif type == 'join':
                         sendmessage = '@' + name + ' 欢迎光临'
-                        print(sendmessage)
+                        # print(sendmessage)
         except Exception as e:
             error_log('e', '处理消息的过程中失败：\n' + str(message_list))
             continue
