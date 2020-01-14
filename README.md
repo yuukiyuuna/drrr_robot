@@ -1,0 +1,2 @@
+# A bot of drrr
+网站的数据包是搞明白了，但是通过python带cookie发数据包还是有些问题，所以就用了chromedriver这个工具来解决cookie的问题
